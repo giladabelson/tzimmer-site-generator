@@ -1,0 +1,103 @@
+---
+// Dark closing band on every page — the page opens on a dark photograph and
+// ends on the same tone, so the whole site reads as one lit room.
+const { p, hasPlaceholders } = Astro.props;
+const isHome = Astro.url.pathname === '/' || Astro.url.pathname === '';
+const pre = isHome ? '' : '/';
+const wa = p.contact.whatsapp.replace(/\D/g, '');
+const year = new Date().getFullYear();
+---
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <div>
+        <p class="foot-name">{p.name}</p>
+        <p class="foot-sub">{p.location.address}, {p.region}</p>
+      </div>
+
+      <nav class="foot-nav" aria-label="ניווט תחתון">
+        <a href={`${pre}#tour`}>הסיור</a>
+        <a href="/gallery/">הגלריה</a>
+        <a href={`${pre}#booking`}>זמינות והזמנה</a>
+      </nav>
+
+      <ul class="foot-links">
+        <li><a href={`https://wa.me/${wa}`}>וואטסאפ</a></li>
+        {p.contact.phone && <li><a href={`tel:${p.contact.phone.replace(/[^\d+]/g, '')}`} class="ltr num">{p.contact.phone}</a></li>}
+        {p.contact.email && <li><a href={`mailto:${p.contact.email}`} class="ltr">{p.contact.email}</a></li>}
+      </ul>
+    </div>
+
+    {hasPlaceholders && (
+      <p class="foot-honest">
+        חלק מהתמונות באתר הזה הן תמונות המחשה בלבד, ולא צילומים של הצימר הזה.
+        כל אחת מהן מסומנת בתווית גלויה ״תמונת המחשה - טרם צולם״.
+        הצילום האמיתי של המקום טרם בוצע. לא נעשה כאן שימוש בשום צילום של נכס אחר שמשווק להשכרה.
+      </p>
+    )}
+
+    <p class="foot-fine">
+      <span>© <span class="num">{year}</span> {p.contact.ownerName ?? p.name}</span>
+      <span>הזמנה ישירה, בלי עמלות תיווך.</span>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .foot {
+    background: #17130f;
+    color: rgb(255 255 255 / 0.88);
+    padding-block: var(--s-6) calc(var(--s-5) + 4.5rem);
+  }
+  @media (min-width: 940px) { .foot { padding-block-end: var(--s-5); } }
+
+  .foot-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: start;
+    gap: var(--s-4);
+  }
+  .foot-name { font-family: var(--font-heb-display); font-size: var(--t-2); line-height: 1.2; }
+  .foot-sub { margin-top: 0.35rem; font-size: var(--t--1); color: rgb(255 255 255 / 0.55); }
+
+  .foot-nav { display: grid; gap: 0.3rem; }
+  .foot-nav a, .foot-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    font-size: var(--t--1);
+    color: rgb(255 255 255 / 0.82);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: rgb(255 255 255 / 0.25);
+    transition: color 0.2s var(--ease);
+  }
+  .foot-nav a:hover, .foot-links a:hover { color: #fff; text-decoration-color: currentColor; }
+  .foot-links { list-style: none; padding: 0; display: grid; gap: 0.3rem; }
+
+  .foot-honest {
+    margin-top: var(--s-4);
+    padding: var(--s-2) var(--s-3);
+    border-inline-start: 2px solid var(--accent);
+    background: rgb(255 255 255 / 0.06);
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: rgb(255 255 255 / 0.7);
+    max-width: 62ch;
+  }
+
+  .foot-fine {
+    margin-top: var(--s-4);
+    padding-top: var(--s-3);
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-3);
+    font-size: 0.8rem;
+    /* 0.5 white composites to #8b8987 on #17130f: 5.30:1, AA at any size. The
+       alpha stays where it is; the size went up instead. */
+    color: rgb(255 255 255 / 0.5);
+  }
+</style>

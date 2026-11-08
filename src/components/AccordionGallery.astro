@@ -1,0 +1,80 @@
+---
+import Figure from './Figure.astro';
+
+// ponytail: pure-CSS accordion. flex-grow is animatable, :focus-within holds the
+// default-open panel — no React, no GSAP, no JS at all.
+const { images, defaultIndex = 0, height = 460, priority = true } = Astro.props;
+---
+
+<div class="acc" style={`--acc-h:${height}px`}>
+  {images.map((img, i) => (
+    <a
+      class="acc-panel"
+      href={img.file.src}
+      data-open={i === defaultIndex ? '' : undefined}
+      aria-label={img.caption || img.alt}
+    >
+      <Figure
+        img={img}
+        sizes="(min-width: 900px) 50vw, 90vw"
+        widths={[480, 800, 1200]}
+        showCaption={false}
+        priority={priority && i === defaultIndex}
+      />
+      {img.caption && <span class="acc-label" aria-hidden="true">{img.caption}</span>}
+    </a>
+  ))}
+</div>
+
+<style>
+  .acc { display: flex; gap: var(--s-1); height: var(--acc-h); }
+
+  .acc-panel {
+    position: relative; flex: 1 1 0; min-width: 0; overflow: hidden;
+    border-radius: var(--radius-lg); text-decoration: none;
+    transition: flex-grow 0.6s var(--ease);
+  }
+  .acc-panel :global(.fig), .acc-panel :global(.ph) { height: 100%; }
+  /* A closed panel is still a photograph of a room, only a quieter one: a touch
+     less saturation and a touch less light, never grey and never black.
+     Filter the photo, not the panel — the "טרם צולם" badge must stay legible. */
+  .acc-panel :global(.ph > img) { transition: filter 0.6s var(--ease); }
+  .acc-panel:not(:hover):not(:focus) :global(.ph > img) { filter: saturate(0.88) brightness(0.92); }
+
+  .acc-panel::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to top, rgb(23 19 15 / 0.68), rgb(23 19 15 / 0.12) 38%, transparent 60%);
+  }
+
+  /* Labels are readable on every panel, open or not: on a closed panel you must
+     be able to tell what is behind it before you point at it. */
+  .acc-label {
+    position: absolute; inset-block-end: var(--s-2); inset-inline: var(--s-3);
+    z-index: 2; color: #fff; font-weight: 600; font-size: var(--t-0);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 2px 14px rgb(0 0 0 / 0.7);
+    opacity: 0.88; transition: opacity 0.4s var(--ease);
+  }
+
+  .acc-panel:hover, .acc-panel:focus { flex-grow: 4; }
+  .acc-panel:hover .acc-label, .acc-panel:focus .acc-label { opacity: 1; }
+  .acc-panel:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+
+  /* Nothing hovered or focused: the default panel stays open, so it never looks dead. */
+  .acc:not(:hover):not(:focus-within) .acc-panel[data-open] { flex-grow: 4; }
+  .acc:not(:hover):not(:focus-within) .acc-panel[data-open] :global(.ph > img) { filter: none; }
+  .acc:not(:hover):not(:focus-within) .acc-panel[data-open] .acc-label { opacity: 1; }
+
+  /* Touch: no hover to drive it. Stack, show every label, skip the dimming. */
+  @media (max-width: 640px) {
+    .acc { flex-direction: column; height: auto; }
+    .acc-panel { flex: none; height: 150px; }
+    .acc-panel[data-open] { height: 260px; }
+    .acc-panel :global(.ph > img) { filter: none !important; }
+    .acc-label { opacity: 1 !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .acc-panel, .acc-panel :global(.ph > img), .acc-label { transition: none; }
+  }
+</style>

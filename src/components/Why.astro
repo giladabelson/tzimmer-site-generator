@@ -1,0 +1,137 @@
+---
+const { p } = Astro.props;
+
+// Beat 2 — the argument. This is what `pin` is for: the frame holds still and
+// the case for the place gains weight under the reader's own scroll. The span
+// grows with the number of reasons, so a property with two highlights does not
+// sit on a pinned screen as long as one with five.
+const n = p.highlights.length;
+const span = Number((1.0 + n * 0.16).toFixed(2));
+
+// Emphasis, not entrance. Every reason is on the screen from the first frame at
+// full strength, and the act's progress walks a lit rule down the list.
+//
+// The emphasis rides the HAIRLINE, never the text. Dimming the text was the
+// first attempt and it cannot be made accessible: --muted on --paper is 5.79:1
+// at full opacity, so any fade deep enough to read as "not this one" lands the
+// body copy between 1.6:1 and 4.2:1 — under AA at every setting that is
+// actually visible. A decorative 1px rule has no contrast floor to clear, so
+// the accent moves there and every word stays readable the whole way down.
+//
+// This is done in CSS off --sc-p (the act publishes its own progress there),
+// NOT with data-sc-cue: the engine writes `style.opacity` inline on every cue
+// element each frame, so a CSS resting value would simply be overwritten and
+// the list would go back to filling in from nothing against blank paper.
+const FIRST = 0.12;
+const LAST = 0.88;
+const step = n > 1 ? (LAST - FIRST) / (n - 1) : 0;
+const peakAt = (i) => (n > 1 ? FIRST + i * step : 0.5).toFixed(3);
+// Half-width of the bright band. Just under one full step, so the highlight
+// travels continuously instead of blinking between reasons.
+const band = (n > 1 ? step * 0.9 : 1).toFixed(3);
+---
+
+<section
+  id="why"
+  aria-labelledby="why-h"
+  data-sc-act="pin"
+  data-sc-span={span}
+  style={`--why-span:${span};--why-band:${band}`}
+>
+  <div class="why-stage" data-sc-stage>
+    <div class="wrap why-grid">
+      <div class="why-lead">
+        <h2 id="why-h" class="lead">{p.shortDescription}</h2>
+      </div>
+
+      <ul class="why-list">
+        {p.highlights.map((h, i) => (
+          <li style={`--peak:${peakAt(i)}`}>
+            <h3>{h.title}</h3>
+            <p>{h.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  #why {
+    /* Matches data-sc-span so the pin costs no layout shift on mount. */
+    height: calc(var(--why-span, 1) * 100svh);
+    padding-block: 0;
+  }
+  .why-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: clip;
+    /* grid, not flex: a flex item will not shrink below its content and the
+       RTL text then starts past the right edge of the screen. */
+    display: grid;
+    align-content: center;
+  }
+  .why-grid { display: grid; gap: var(--s-5); }
+  @media (min-width: 900px) {
+    .why-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; }
+  }
+
+  /* The headline now opens the section on its own, with no label above it, so
+     it needs the room the label used to occupy. */
+  .why-lead { max-width: 34ch; }
+
+  .lead {
+    font-size: var(--t-1);
+    font-weight: 400;
+    line-height: 1.55;
+    max-width: 30ch;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 900px) { .lead { font-size: var(--t-2); max-width: 22ch; } }
+
+  .why-list { list-style: none; padding: 0; display: grid; gap: var(--s-2); }
+  @media (min-width: 900px) { .why-list { gap: var(--s-3); } }
+
+  .why-list li {
+    position: relative;
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--line-soft);
+    --peak: 0.5;
+  }
+
+  /* The lit rule. It sits exactly on top of the resting hairline, so the two
+     never both show as two lines. Decorative only: aria sees nothing, and the
+     text beneath it never changes weight. */
+  .why-list li::before {
+    content: '';
+    position: absolute;
+    inset-block-start: -1px;
+    inset-inline: 0;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0;
+  }
+
+  /* The travelling emphasis. Scoped to html.sc-on so that a page without JS —
+     or one whose engine never mounted, where the watchdog strips .sc-on — is
+     simply a list with plain hairlines, which is a perfectly good list.
+     |p - peak| without abs(), which is still too new to rely on:
+     max(a - b, b - a). */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.sc-on) .why-list li::before {
+      opacity: clamp(
+        0,
+        calc(
+          1 -
+            max(var(--sc-p, 0) - var(--peak), var(--peak) - var(--sc-p, 0)) /
+            var(--why-band, 0.5)
+        ),
+        1
+      );
+    }
+  }
+
+  .why-list h3 { margin-bottom: 0.15em; }
+  .why-list p { color: var(--muted); font-size: var(--t--1); line-height: 1.75; }
+</style>

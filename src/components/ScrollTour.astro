@@ -1,0 +1,186 @@
+---
+import { Image } from 'astro:assets';
+import lqip from '../generated/lqip.json';
+
+const { images, entrance } = Astro.props;
+
+// Optional opening act: one photo the page slowly pushes INTO as you scroll —
+// the "walking in" moment. Pure CSS transform off --sc-p; no video, no frames.
+const ENTER_SPAN = 1.3;
+
+// Beat 3 — presence. The frame pins and scrolling walks the reader through the
+// place, photo to photo, the way the video walk-throughs on social do it: each
+// scene fills the screen, the incoming one crossfades over the outgoing one,
+// and the whole act rides a single slow push-in.
+//
+// Four rooms is a walk-through; six is a slideshow the reader has to sit out
+// before the calendar appears. The full set is one click away on the gallery.
+const slides = images.slice(0, 4);
+const n = slides.length;
+// 0.45 viewport of scroll per scene: enough to read the caption, short enough
+// that the page does not feel endless. NOTE: this section has no id on
+// purpose — #tour belongs to the 360 walkthrough section.
+const span = Number((0.8 + n * 0.45).toFixed(2));
+
+// Cue windows with a seam of overlap, so adjacent slides crossfade instead of
+// cutting. Numbers are fractions of the act's progress; rIn/rOut are fractions
+// of the slide's own window (see scrollcraft's cue contract).
+const o = 0.16 / n;
+const cue = (i) => {
+  const from = i === 0 ? 0 : i / n - o;
+  const to = i === n - 1 ? 1 : (i + 1) / n + o;
+  const rIn = i === 0 ? 0 : (2 * o) / (to - from);
+  const rOut = i === n - 1 ? 0 : (2 * o) / (to - from);
+  return `${from.toFixed(3)} ${to.toFixed(3)} ${rIn.toFixed(3)} ${rOut.toFixed(3)}`;
+};
+const blurOf = (img) => lqip[decodeURIComponent(img.file.src).split('/').pop().split('.')[0]];
+---
+
+{entrance && (
+  <section class="tour enter" aria-label="כניסה אל המקום" data-sc-act="pin" data-sc-span={ENTER_SPAN} style={`--tour-span:${ENTER_SPAN}`}>
+    <div class="tour-stage" data-sc-stage>
+      <figure class="tour-slide">
+        <div class="ph tour-media" style={blurOf(entrance) ? `background-image:url(${blurOf(entrance)})` : undefined}>
+          <Image
+            src={entrance.file}
+            alt={entrance.alt}
+            widths={[640, 1024, 1600, 2400]}
+            sizes="100vw"
+            quality={70}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        {entrance.source !== 'real' && <span class="badge">תמונת המחשה - טרם צולם</span>}
+      </figure>
+
+      <div class="tour-shade" aria-hidden="true"></div>
+
+      <div class="tour-caps">
+        <div class="tour-cap" data-sc-cue="0 0.55 0 0.4" data-sc-rise="0.6">
+          <p>{entrance.caption}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+{n > 1 && (
+  <section class="tour" aria-label="סיור בתמונות" data-sc-act="pin" data-sc-span={span} style={`--tour-span:${span}`}>
+    <div class="tour-stage" data-sc-stage>
+      {slides.map((img, i) => (
+        <figure class="tour-slide" data-sc-cue={cue(i)} data-sc-rise="0">
+          <div class="ph tour-media" style={blurOf(img) ? `background-image:url(${blurOf(img)})` : undefined}>
+            <Image
+              src={img.file}
+              alt={img.alt}
+              widths={[640, 1024, 1600, 2400]}
+              sizes="100vw"
+              quality={70}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          {img.source !== 'real' && <span class="badge">תמונת המחשה - טרם צולם</span>}
+        </figure>
+      ))}
+
+      <div class="tour-shade" aria-hidden="true"></div>
+
+      <div class="tour-caps" data-sc-parallax="-0.15">
+        {slides.map((img, i) => (
+          <div class="tour-cap" data-sc-cue={cue(i)} data-sc-rise="0.6">
+            {img.caption && <p>{img.caption}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)}
+
+<style>
+  .tour {
+    /* Matches data-sc-span so the pin costs no layout shift on mount. */
+    height: calc(var(--tour-span, 1) * 100svh);
+    padding-block: 0;
+    background: #17130f;
+    color: #fff;
+  }
+  .tour-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: clip;
+    isolation: isolate;
+  }
+
+  .tour-slide {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+  }
+  .tour-media { position: absolute; inset: 0; }
+  .tour-media :global(img) { width: 100%; height: 100%; object-fit: cover; }
+
+  /* The whole act rides one slow push-in, read straight off the act's own
+     progress — same trick as the hero's falling light, one rule and no JS. */
+  @media (prefers-reduced-motion: no-preference) {
+    .tour-media :global(img) { transform: scale(calc(1.04 + var(--sc-p, 0) * 0.12)); }
+
+    /* The entrance opens like a shutter: a small rounded frame at rest that
+       widens to full bleed while the photo inside eases back from a zoom.
+       --se finishes early so the photo holds full-screen before the act ends. */
+    .enter { --se: clamp(0, calc(var(--sc-p, 0) / 0.65), 1); }
+    .enter .tour-media {
+      clip-path: inset(
+        calc((1 - var(--se)) * 21%) calc((1 - var(--se)) * 29%) round calc((1 - var(--se)) * 24px)
+      );
+    }
+    .enter .tour-media :global(img) { transform: scale(calc(1.35 - var(--se) * 0.35)); }
+    /* Outside the frame the scrim would darken bare page, so it arrives with it. */
+    .enter .tour-shade { opacity: var(--se); }
+
+    /* A 29% side inset leaves a sliver on a phone. Open from a taller portrait. */
+    @media (max-width: 640px) {
+      .enter .tour-media {
+        clip-path: inset(
+          calc((1 - var(--se)) * 12%) calc((1 - var(--se)) * 10%) round calc((1 - var(--se)) * 20px)
+        );
+      }
+    }
+  }
+
+  .tour-shade {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(to top, rgb(12 9 7 / 0.78), rgb(12 9 7 / 0.28) 26%, transparent 52%);
+  }
+
+  .tour-caps { position: absolute; inset-inline: 0; bottom: 0; z-index: 6; }
+  .tour-cap {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    width: min(100% - (var(--gut) * 2), 1140px);
+    margin-inline: auto;
+    padding-bottom: clamp(2.5rem, 7vh, 4.5rem);
+  }
+  .tour-cap p {
+    font-family: var(--font-heb-display);
+    font-size: var(--t-3);
+    line-height: 1.2;
+    max-width: 18ch;
+    text-shadow: 0 1px 24px rgb(0 0 0 / 0.4);
+  }
+
+  /* Clear the floating top bar, which overlays the pinned stage. */
+  .tour-slide :global(.badge) { z-index: 4; inset-block-start: calc(var(--nav-h) + 0.6rem); }
+
+  /* No JS (or a failed engine): the watchdog clears .sc-on and forces every cue
+     visible, which would stack all the slides and captions. Show scene one. */
+  :global(html:not(.sc-on)) .tour-slide:not(:first-of-type) { display: none; }
+  :global(html:not(.sc-on)) .tour-cap:not(:first-child) { display: none; }
+  :global(html:not(.sc-on)) .tour { height: 100svh; }
+</style>

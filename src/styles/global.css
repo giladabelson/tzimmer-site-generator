@@ -1,0 +1,239 @@
+/* ── reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+img, picture, svg, video { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:where(a) { color: inherit; }
+
+/* ── tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Galilee ground: limestone + olive, not office paper. All measured AA:
+     muted is 5.79:1 on paper and 5.26:1 on sunk (old palette was 4.47). */
+  --paper:      #f2f1e4;
+  --paper-sunk: #e8e7d2;
+  --paper-card: #fbfaf0;
+  --ink:        #191712;
+  --ink-soft:   #443f30;
+  --muted:      #635d48;
+  --line:       rgb(25 23 18 / 0.13);
+  --line-soft:  rgb(25 23 18 / 0.07);
+
+  /* --accent and --accent-contrast are set per property on <html>. */
+  --accent-wash: color-mix(in oklab, var(--accent) 12%, var(--paper));
+  --accent-deep: color-mix(in oklab, var(--accent) 78%, var(--ink));
+
+  /* modular scale, 1.22 mobile → 1.33 desktop.
+
+     Floor: nothing on this site is set below 0.8rem (12.8px at a 16px root).
+     Hebrew has no capitals and almost no descenders, so word shape carries far
+     less of the recognition load than it does in Latin script, and small
+     Hebrew text loses legibility faster than the equivalent English does. The
+     readers here are people booking a holiday cabin, an audience that skews
+     older than a typical product's. --t--1 is the smallest token and already
+     clears the floor: the clamp resolves to 13.01px at a 320px viewport,
+     13.48px at 768px and 14.00px at 1440px. Use --t--1 for small text; do not
+     reintroduce hard-coded 0.7rem / 0.72rem / 0.78rem sizes in components. */
+  --t--1: clamp(0.813rem, 0.79rem + 0.11vw, 0.875rem);
+  --t-0:  clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --t-1:  clamp(1.22rem, 1.13rem + 0.42vw, 1.5rem);
+  --t-2:  clamp(1.49rem, 1.32rem + 0.85vw, 2rem);
+  --t-3:  clamp(1.82rem, 1.5rem + 1.6vw, 2.66rem);
+  --t-4:  clamp(2.22rem, 1.66rem + 2.8vw, 3.55rem);
+  --t-5:  clamp(2.7rem, 1.7rem + 5vw, 4.7rem);
+
+  --s-1: 0.5rem;  --s-2: 0.875rem; --s-3: 1.375rem;
+  --s-4: 2.25rem; --s-5: 3.5rem;   --s-6: 5.5rem;
+  --gut: clamp(1.25rem, 5vw, 3rem);
+  --section: clamp(3.5rem, 8vh, 7rem);
+  --tap: 2.75rem;               /* 44px minimum touch target */
+  --nav-h: 3.5rem;              /* the floating top bar (Nav.astro) */
+
+  --radius: 2px;
+  --radius-lg: 4px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  --font-heb-display: var(--font-display), David, Narkisim, 'Times New Roman', serif;
+  --font-heb-body: var(--font-body), 'Arial Hebrew', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── base ──────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  /* clip, not hidden: `hidden` would turn the element into a scroll container
+     and smooth-scroll would fight the real one. */
+  overflow-x: clip;
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-heb-body);
+  font-size: var(--t-0);
+  font-weight: 380;
+  line-height: 1.85;
+  font-feature-settings: 'kern' 1;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-heb-display);
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: 0;                 /* Hebrew never takes tracking */
+  text-wrap: balance;
+}
+h1 { font-size: var(--t-5); }
+h2 { font-size: var(--t-3); }
+h3 { font-size: var(--t-1); font-weight: 600; line-height: 1.35; }
+p  { text-wrap: pretty; }
+
+/* Numbers, dates and phone numbers keep their own direction inside Hebrew. */
+.ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.num {
+  /* Digits stay in the body face so the display font never needs its Latin subset. */
+  font-family: var(--font-heb-body);
+  font-variant-numeric: tabular-nums lining-nums;
+  unicode-bidi: isolate;
+}
+
+/* ── layout ────────────────────────────────────────────────────────── */
+.wrap { width: min(100% - (var(--gut) * 2), 1140px); margin-inline: auto; }
+.narrow { width: min(100% - (var(--gut) * 2), 720px); margin-inline: auto; }
+section { padding-block: var(--section); position: relative; scroll-margin-top: var(--s-3); }
+/* Alternating tones so consecutive sections read as bands, not one endless page. */
+.sunk { background-color: var(--paper-sunk); }
+.prose { max-width: 60ch; font-size: var(--t-0); color: var(--ink-soft); }
+.prose p + p { margin-top: 1.1em; }
+.prose strong { font-weight: 600; color: var(--ink); }
+
+/* The small bold label with a trailing hairline. Kept, but rationed. Eight
+   sections of the home page used to open with an identical one, and that exact
+   repetition was the loudest "a machine wrote this" signal on the site. Budget:
+   at most one per three sections, three on the home page in total, and they are
+   the hero region label, the booking section and the location section. Every
+   other section opens on its heading instead. Do not add a fourth. */
+.eyebrow {
+  display: flex; align-items: center; gap: var(--s-2);
+  font-size: var(--t--1); font-weight: 600; color: var(--accent-deep);
+  margin-bottom: var(--s-2);
+}
+.eyebrow::after {
+  content: ''; flex: 1; height: 1px; max-width: 5rem;
+  background: color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.sec-head { margin-bottom: var(--s-5); max-width: 48ch; }
+.sec-head p { margin-top: var(--s-2); color: var(--muted); max-width: 52ch; }
+
+.rule { height: 1px; background: var(--line-soft); border: 0; }
+
+/* ── photography ───────────────────────────────────────────────────── */
+/* One grade over every photo so mismatched sources read as one set. */
+.ph { position: relative; overflow: hidden; background: var(--accent-wash); }
+.ph > img {
+  width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(0.93) contrast(1.05) brightness(1.02) sepia(0.045);
+}
+.ph[data-lqip] { background-size: cover; background-position: center; }
+
+.badge {
+  position: absolute; inset-block-start: 0.75rem; inset-inline-start: 0.75rem;
+  z-index: 2; display: inline-flex; align-items: center; gap: 0.4em;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem; font-weight: 600; line-height: 1.5;
+  color: #fff; background: rgb(23 19 15 / 0.62);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border-radius: 999px; pointer-events: none;
+}
+.badge::before {
+  content: ''; width: 0.45em; height: 0.45em; border-radius: 50%;
+  background: #f0c14b; flex: none;
+}
+figcaption { margin-top: var(--s-1); font-size: var(--t--1); color: var(--muted); }
+
+/* ── grain ────────────────────────────────────────────────────────── */
+/* The grain used to be one fixed full-viewport div in mix-blend-mode: multiply
+   painted over the whole page. Two things were wrong with that. Over the
+   near-black hero and scroll-tour sections a multiply blend has nothing left to
+   darken, so it only muddied the blacks and returned no texture for the cost.
+   And a fixed blended layer the size of the viewport makes the compositor
+   re-blend the entire screen on every scrolled frame, which on a mid-range
+   Android phone is a measurable frame-rate cost on a site whose traffic is
+   mostly mobile.
+
+   So the texture now rides on the light surfaces themselves, as a background
+   layer. It costs nothing per frame, it cannot reach the dark sections because
+   those paint their own opaque background over it, and a background image has
+   no pointer-events by construction.
+
+   Two layers, because a background layer has no opacity of its own: the grain
+   tile underneath, multiplied into the surface colour exactly as before, and a
+   95% veil of that same surface colour on top of it. Net strength is the old
+   opacity, 0.05. --grain-url is set on <html> by Site.astro. */
+:root { --grain-tile: 180px 180px; }
+
+body {
+  --grain-veil: color-mix(in srgb, var(--paper) 95%, transparent);
+  background-image:
+    linear-gradient(var(--grain-veil), var(--grain-veil)),
+    var(--grain-url);
+  background-size: auto, var(--grain-tile);
+  background-blend-mode: normal, multiply;
+}
+
+.sunk {
+  --grain-veil: color-mix(in srgb, var(--paper-sunk) 95%, transparent);
+  background-image:
+    linear-gradient(var(--grain-veil), var(--grain-veil)),
+    var(--grain-url);
+  background-size: auto, var(--grain-tile);
+  background-blend-mode: normal, multiply;
+}
+
+/* ── buttons ───────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.55em;
+  min-height: var(--tap);
+  padding: 0.85rem 1.6rem; border: 1px solid transparent; border-radius: var(--radius);
+  font-weight: 600; font-size: var(--t-0); line-height: 1.2;
+  cursor: pointer; text-decoration: none;
+  transition: background-color 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease), transform 0.15s var(--ease);
+}
+.btn-primary { background: var(--accent); color: var(--accent-contrast); }
+.btn-primary:hover { background: var(--accent-deep); }
+.btn-ghost { border-color: var(--line); background: transparent; color: var(--ink); }
+.btn-ghost:hover { border-color: var(--ink); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+:where(a, button, input, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: absolute; inset-inline-start: -9999px; top: 0; z-index: 200;
+  background: var(--ink); color: var(--paper); padding: 0.75rem 1.25rem;
+}
+.skip:focus { inset-inline-start: 0; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── scrollcraft guard ─────────────────────────────────────────────
+   The engine's device CSS starts [data-sc-in] elements at opacity 0 and only
+   the engine brings them back. On a booking page that is a one-way door: an
+   engine that never mounts is a blank site. So the hidden state only applies
+   while <html> carries .sc-on, which is set by an inline script when JS is
+   alive and cleared again by a watchdog if the engine has not mounted. */
+html:not(.sc-on) :is([data-sc-in], [data-sc-stagger] > *, [data-sc-cue]) {
+  opacity: 1 !important;
+  transform: none !important;
+  clip-path: none !important;
+}

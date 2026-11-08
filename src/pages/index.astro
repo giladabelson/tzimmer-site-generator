@@ -1,0 +1,48 @@
+---
+import { render } from 'astro:content';
+import { loadProperty } from '../lib/property.mjs';
+import Site from '../layouts/Site.astro';
+import Hero from '../components/Hero.astro';
+import Why from '../components/Why.astro';
+import About from '../components/About.astro';
+import ScrollTour from '../components/ScrollTour.astro';
+import Walkthrough from '../components/Walkthrough.astro';
+import Gallery from '../components/Gallery.astro';
+import Amenities from '../components/Amenities.astro';
+import Booking from '../components/Booking.astro';
+import Location from '../components/Location.astro';
+import Rules from '../components/Rules.astro';
+import feeds from '../generated/availability.json';
+
+const { entry, accent } = await loadProperty();
+const p = entry.data;
+const { Content } = await render(entry);
+
+const hero = p.images.find((i) => i.role === 'hero');
+const gallery = p.images.filter((i) => i.role === 'gallery');
+const galleryImages = gallery.length ? gallery : [hero];
+// The entrance photo opens the scroll tour on its own; don't repeat it as a scene.
+const tourImages = galleryImages.filter((g) => g.file.src !== p.entrance?.file?.src);
+
+const walkthrough = p.panoramas.length ? 'pano' : p.splatUrl ? 'splat' : 'gallery';
+---
+
+<Site property={entry} accent={accent}>
+  <Hero p={p} hero={hero} />
+  <Why p={p} />
+
+  <ScrollTour images={tourImages} entrance={p.entrance} />
+
+  {walkthrough !== 'gallery' ? (
+    <Walkthrough panoramas={p.panoramas} splatUrl={p.splatUrl} />
+  ) : (
+    <Gallery images={galleryImages} asWalkthrough={true} />
+  )}
+
+  <Booking p={p} blocked={feeds.blocked} feeds={feeds} />
+
+  <About p={p} Content={Content} />
+  <Amenities p={p} />
+  <Location p={p} />
+  <Rules p={p} />
+</Site>

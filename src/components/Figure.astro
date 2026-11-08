@@ -1,0 +1,44 @@
+---
+import { Image } from 'astro:assets';
+import lqip from '../generated/lqip.json';
+
+const {
+  img,
+  sizes = '100vw',
+  widths,
+  priority = false,
+  ratio,
+  class: cls = '',
+  showCaption = true,
+} = Astro.props;
+
+// scripts/run.mjs writes a 20px blurred data URI per image, keyed by file stem.
+const stem = decodeURIComponent(img.file.src).split('/').pop().split('.')[0];
+const blur = lqip[stem];
+
+const style = [ratio ? `aspect-ratio:${ratio}` : null, blur ? `background-image:url(${blur})` : null]
+  .filter(Boolean)
+  .join(';');
+---
+
+<figure class={`fig ${cls}`}>
+  <div class="ph" style={style} data-lqip={blur ? '' : undefined}>
+    <Image
+      src={img.file}
+      alt={img.alt}
+      widths={widths ?? [480, 800, 1200, 1800]}
+      sizes={sizes}
+      quality={70}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
+      fetchpriority={priority ? 'high' : 'auto'}
+    />
+    {img.source !== 'real' && <span class="badge">תמונת המחשה - טרם צולם</span>}
+  </div>
+  {showCaption && img.caption && <figcaption>{img.caption}</figcaption>}
+</figure>
+
+<style>
+  .fig { margin: 0; }
+  .fig .ph { width: 100%; height: 100%; }
+</style>

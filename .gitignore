@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.astro/
+src/generated/
+*.log
+
+# secrets and local tooling
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+.wrangler/
+.claude/
+
+# never commit real photos you do not hold rights to
+*.avif

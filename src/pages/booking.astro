@@ -1,0 +1,92 @@
+---
+import { loadProperty } from '../lib/property.mjs';
+import Site from '../layouts/Site.astro';
+import Booking from '../components/Booking.astro';
+import feeds from '../generated/availability.json';
+
+// A standalone dates page, made to be sent as a direct link ("סוגרים כאן").
+// The page header is the only title on this route: <Booking heading={false} />
+// suppresses the component's own eyebrow/h2/lead so nothing is said twice.
+const { entry, accent } = await loadProperty();
+const p = entry.data;
+const price = (n) => `${p.price.currency}${n.toLocaleString('he-IL')}`;
+---
+
+<Site property={entry} accent={accent} pageTitle="סגירת תאריכים">
+  <header class="pg-head">
+    <div class="wrap pg-grid">
+      <div class="pg-intro">
+        <p class="eyebrow">{p.name}</p>
+        <h1>סגירת תאריכים</h1>
+        <p class="pg-sub">
+          בוחרים תאריכים בלוח, וההודעה נפתחת אצלכם בוואטסאפ כשהיא כבר כתובה.
+          רוצים לראות את המקום קודם? <a href="/gallery/">הגלריה כאן</a>.
+        </p>
+      </div>
+
+      <dl class="pg-facts">
+        <div>
+          <dt>מחיר</dt>
+          <dd>
+            <span class="ltr num">{price(p.price.min)}-{price(p.price.max)}</span>
+            <small>{p.price.basis}</small>
+          </dd>
+        </div>
+        <div>
+          <dt>שעות</dt>
+          <dd>כניסה מ־<span class="ltr num">{p.checkIn}</span>, יציאה עד <span class="ltr num">{p.checkOut}</span></dd>
+        </div>
+        <div>
+          <dt>עמלה</dt>
+          <dd>אין. סוגרים ישירות מול הבעלים</dd>
+        </div>
+      </dl>
+    </div>
+  </header>
+
+  <Booking p={p} blocked={feeds.blocked} feeds={feeds} heading={false} />
+</Site>
+
+<style>
+  /*
+    Header shape: two columns, so the header uses the whole container instead of
+    leaving two thirds of the page empty. Column one carries the words, column
+    two carries the three facts a guest checks before they touch the calendar
+    (price range, check-in/check-out, no agency fee). The facts panel is a plain
+    divided list, never a second card, so it cannot compete with the booking card.
+
+    Mobile fallback below 768px: the grid collapses to a single column, the facts
+    panel drops under the text, and its divider turns from a vertical rule on the
+    inline-start edge into a horizontal rule above it.
+  */
+  .pg-head { padding-block: calc(var(--nav-h) + var(--s-5)) var(--s-4); }
+
+  .pg-grid { display: grid; gap: var(--s-4); }
+  @media (min-width: 768px) {
+    .pg-grid {
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: var(--s-5);
+      align-items: end;
+    }
+  }
+
+  .pg-sub { margin-top: var(--s-2); color: var(--muted); max-width: 52ch; }
+  .pg-sub a { color: var(--accent-deep); text-underline-offset: 3px; }
+
+  .pg-facts {
+    display: grid; gap: var(--s-2); margin: 0;
+    border-block-start: 1px solid var(--line-soft);
+    padding-block-start: var(--s-3);
+  }
+  @media (min-width: 768px) {
+    .pg-facts {
+      border-block-start: 0;
+      padding-block-start: 0;
+      border-inline-start: 1px solid var(--line-soft);
+      padding-inline-start: var(--s-3);
+    }
+  }
+  .pg-facts dt { font-size: var(--t--1); font-weight: 600; color: var(--muted); }
+  .pg-facts dd { margin: 0.15rem 0 0; font-size: var(--t-0); line-height: 1.5; color: var(--ink); }
+  .pg-facts dd small { display: block; font-size: var(--t--1); color: var(--muted); }
+</style>

@@ -1,0 +1,193 @@
+---
+import { Image } from 'astro:assets';
+import lqip from '../generated/lqip.json';
+
+const { p, hero } = Astro.props;
+const stem = decodeURIComponent(hero.file.src).split('/').pop().split('.')[0];
+const blur = lqip[stem];
+
+// One source of truth for the act length. The engine sets the section height to
+// span × 100vh when it mounts; CSS below claims the same height from first
+// paint, so the pin costs no layout shift when the engine arrives.
+const span = 1.6;
+---
+
+<!--
+  Beat 1 — arrival, and the page's peak: it gets the longest span.
+
+  Every cue here starts at 0 with a zero in-ramp, so the headline is lit the
+  instant the page paints. Scroll only takes things away. A hero that assembles
+  itself on scroll looks clever in a demo and costs bookings from the half of
+  visitors who never scroll past the fold.
+
+  The signature move: the engine publishes the act's progress as --sc-p, and the
+  scrim and the photo grade read it directly, so descending the hero lowers the
+  light on the picture. Nothing else on the page does that, and it is one CSS
+  rule with no JavaScript behind it.
+-->
+<header class="hero" data-sc-act="pin" data-sc-span={span} style={`--hero-span:${span}`}>
+  <div class="hero-stage" data-sc-stage>
+    <div class="hero-media ph" data-sc-parallax="-0.14" style={blur ? `background-image:url(${blur})` : undefined}>
+      <Image
+        src={hero.file}
+        alt={hero.alt}
+        widths={[640, 1024, 1600, 2400]}
+        sizes="100vw"
+        quality={70}
+        loading="eager"
+        decoding="sync"
+        fetchpriority="high"
+      />
+    </div>
+
+    <div class="hero-body wrap">
+      <p class="hero-region" data-sc-cue="0 0.68 0 0.34">{p.region}</p>
+      <h1 data-sc-cue="0 0.96 0 0.3">{p.name}</h1>
+      <p class="hero-tag" data-sc-cue="0 0.8 0 0.32">{p.tagline}</p>
+
+      <ul class="hero-meta" data-sc-cue="0 0.74 0 0.34">
+        <li>עד <b class="num">{p.capacity.guests}</b> אורחים</li>
+        <li><b class="num">{p.capacity.bedrooms}</b> חדר שינה</li>
+        <li>החל מ־<b class="num">{p.price.currency}{p.price.min.toLocaleString('he-IL')}</b> {p.price.basis}</li>
+      </ul>
+
+      <a class="btn btn-primary hero-cta" href="#booking" data-sc-cue="0 0.7 0 0.34">בדיקת זמינות</a>
+    </div>
+
+    {hero.source !== 'real' && <span class="badge hero-badge">תמונת המחשה - טרם צולם</span>}
+  </div>
+</header>
+
+<style>
+  .hero {
+    position: relative;
+    color: #fff;
+    /* Matches data-sc-span, so the pin is already the right height on paint. */
+    height: calc(var(--hero-span, 1) * 100svh);
+  }
+
+  .hero-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: clip;
+    display: flex;
+    align-items: flex-end;
+    padding-block: var(--s-6) clamp(3rem, 8vh, 5rem);
+    isolation: isolate;
+  }
+
+  .hero-media { position: absolute; inset: -8% 0; z-index: -2; }
+  .hero-media :global(img) { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Signature move: the light falls as you scroll. --sc-p is the act's own
+     progress, published by the engine, so this is one CSS rule and no JS. */
+  .hero-stage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(
+        to top,
+        rgb(12 9 7 / 0.9) 0%,
+        rgb(12 9 7 / 0.72) 22%,
+        rgb(12 9 7 / 0.42) 46%,
+        rgb(12 9 7 / 0.14) 72%,
+        rgb(12 9 7 / 0.34) 100%
+      );
+  }
+  .hero-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(to top, rgb(10 12 20 / 0.85), rgb(10 12 20 / 0.45));
+    opacity: calc(var(--sc-p, 0) * 0.55);
+  }
+  .hero-media :global(img) { filter: saturate(calc(1 - var(--sc-p, 0) * 0.3)); }
+
+  .hero-badge { inset-block-start: auto; inset-block-end: 1rem; inset-inline-end: 1rem; inset-inline-start: auto; }
+
+  .hero-body { position: relative; width: min(100% - (var(--gut) * 2), 1140px); margin-inline: auto; }
+  .hero-region {
+    font-size: var(--t--1);
+    font-weight: 600;
+    /* 0.92, not 0.82: this line sits low on the photo where the scrim is
+       0.72-0.9 opaque, so it already cleared AA - the bump is head-room for a
+       brighter hero photo than the demo's. */
+    color: rgb(255 255 255 / 0.92);
+    margin-bottom: var(--s-2);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .hero-region::after { content: ''; width: 3.5rem; height: 1px; background: rgb(255 255 255 / 0.45); }
+
+  .hero h1 { max-width: 15ch; text-shadow: 0 1px 30px rgb(0 0 0 / 0.35); }
+  .hero-tag {
+    margin-top: var(--s-3);
+    max-width: 34ch;
+    font-size: var(--t-1);
+    line-height: 1.6;
+    color: rgb(255 255 255 / 0.9);
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem var(--s-3);
+    list-style: none;
+    padding: 0;
+    margin-top: var(--s-4);
+    font-size: var(--t--1);
+    color: rgb(255 255 255 / 0.95);
+  }
+  .hero-meta li { display: flex; align-items: center; gap: 0.4em; }
+  /* No separator dot. It used to be a `li + li::before`, which on a 375px phone
+     landed at the START of the wrapped second line and floated there alone.
+     The 1.375rem column gap already reads as separation, at any width and in
+     both directions, with nothing that can lead a line. */
+  .hero-meta b { font-weight: 600; color: #fff; }
+
+  /* Desktop: the same facts become one floating glass card, opposite the copy —
+     the LUXONN move, in this site's register. Mobile keeps the plain row. */
+  @media (min-width: 960px) {
+    .hero-meta {
+      position: absolute;
+      inset-inline-end: 0;
+      inset-block-end: 0.25rem;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      min-width: 14.5rem;
+      margin-top: 0;
+      padding: var(--s-2) var(--s-3);
+      /* Measured over the brightest sky region of the hero photo, the old panel
+         (0.36 fill under 0.86 text) came out at 3.74:1 - short of the 4.5:1 AA
+         floor at this size. 0.62 fill under 0.95 text clears it with room to
+         spare, and the blur and hairline border are untouched, so the card
+         still reads as glass rather than as a solid box. */
+      background: rgb(12 9 7 / 0.62);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgb(255 255 255 / 0.16);
+      border-radius: var(--radius-lg);
+    }
+    .hero-meta li { padding-block: 0.6rem; }
+    .hero-meta li + li { border-top: 1px solid rgb(255 255 255 / 0.13); }
+  }
+
+  /* The CTA is the only booking button in the hero, so it shows at every width.
+     It is the last item in the copy column, which sits inline-start (right in
+     RTL); the glass card floats inline-end (left) inside the same .hero-body.
+     Layout check at the tightest case, a 960px viewport: --gut resolves to 3rem,
+     so .hero-body is 864px. The card needs 14.5rem (232px), the button about
+     8.8rem (12 characters of --t-0 plus 1.6rem of padding each side). Reserving
+     17.5rem at the inline-end leaves the copy 584px and puts a 3rem air gap
+     between the button and the card, so they cannot meet. The card is absolutely
+     positioned, and offsets resolve against the padding box, so this padding
+     reserves the space without dragging the card inward. */
+  .hero-cta { margin-top: var(--s-4); }
+  @media (min-width: 960px) { .hero-body { padding-inline-end: 17.5rem; } }
+</style>

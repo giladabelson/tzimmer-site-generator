@@ -1,0 +1,156 @@
+---
+import { loadProperty } from '../lib/property.mjs';
+import Site from '../layouts/Site.astro';
+import Figure from '../components/Figure.astro';
+
+const { entry, accent } = await loadProperty();
+const p = entry.data;
+
+const hero = p.images.find((i) => i.role === 'hero');
+const gallery = p.images.filter((i) => i.role === 'gallery');
+const all = [hero, ...gallery].filter(Boolean);
+
+// This page is "every photo, as big as the screen allows", so it is a plain two
+// column grid rather than an accordion: nothing is hidden behind a hover.
+// The opening photo always spans both columns, and so does the last one when an
+// odd count would otherwise leave a lonely tile with a hole beside it.
+const wide = new Set([0]);
+if ((all.length - 1) % 2 === 1) wide.add(all.length - 1);
+---
+
+<Site property={entry} accent={accent} pageTitle="הגלריה">
+  <header class="pg-head sunk">
+    <div class="wrap pg-head-in">
+      <div class="pg-head-text">
+        <h1>הגלריה</h1>
+        <p class="pg-sub">
+          כל התמונות של {p.name}, בגודל מלא. {p.region}.
+          לחיצה על תמונה פותחת אותה במסך שלם.
+        </p>
+      </div>
+
+      <div class="pg-head-aside">
+        <dl class="pg-facts">
+          <div class="pg-fact">
+            <dt>תמונות</dt>
+            <dd>{all.length}</dd>
+          </div>
+          <div class="pg-fact">
+            <dt>אורחים</dt>
+            <dd>עד {p.capacity.guests}</dd>
+          </div>
+          <div class="pg-fact">
+            <dt>חדרי שינה</dt>
+            <dd>{p.capacity.bedrooms}</dd>
+          </div>
+        </dl>
+
+        <a class="btn btn-ghost pg-head-cta" href="/booking/">בדיקת זמינות</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="pg-body" aria-label="כל התמונות">
+    <div class="wrap ph-grid">
+      {all.map((img, i) => (
+        <a
+          class:list={['ph-tile', wide.has(i) && 'ph-tile-wide']}
+          href={img.file.src}
+          aria-label={`פתיחה בגודל מלא: ${img.caption || img.alt}`}
+        >
+          <Figure
+            img={img}
+            ratio={wide.has(i) ? '2 / 1' : '3 / 2'}
+            sizes={wide.has(i) ? '(min-width: 1200px) 1140px, 94vw' : '(min-width: 1200px) 560px, 94vw'}
+            widths={wide.has(i) ? [800, 1200, 1800] : [480, 800, 1200]}
+            showCaption={false}
+            priority={i === 0}
+          />
+          {img.caption && <span class="ph-cap">{img.caption}</span>}
+        </a>
+      ))}
+    </div>
+
+    <div class="wrap pg-cta">
+      <p>מצא חן? בודקים תאריכים ושולחים לנו הודעה. הכול ישיר, בלי אתרי תיווך.</p>
+      <a class="btn btn-primary" href="/booking/">בדיקת זמינות</a>
+    </div>
+  </section>
+</Site>
+
+<style>
+  /* ── header: heading on the start edge, facts and the action on the end edge,
+        so the full width of the band carries something. ───────────────────── */
+  .pg-head { padding-block: calc(var(--nav-h) + var(--s-5)) var(--s-4); }
+
+  .pg-head-in {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--s-4) var(--s-5);
+  }
+
+  .pg-head-text h1 { margin: 0; }
+  .pg-sub { margin-top: var(--s-2); color: var(--muted); max-width: 46ch; }
+
+  .pg-head-aside {
+    display: grid;
+    justify-items: start;
+    gap: var(--s-3);
+  }
+
+  .pg-facts { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: 0; }
+  .pg-fact { display: grid; gap: 0.2rem; }
+  .pg-facts dt { font-size: var(--t--1); font-weight: 600; color: var(--muted); }
+  .pg-facts dd { margin: 0; font-size: var(--t-1); font-weight: 600; color: var(--ink); line-height: 1.15; }
+
+  /* Below 768px the two columns stack and the facts become a strip under a rule. */
+  @media (max-width: 767px) {
+    .pg-head-in { grid-template-columns: 1fr; align-items: start; gap: var(--s-3); }
+    .pg-head-aside {
+      justify-items: stretch;
+      padding-top: var(--s-3);
+      border-top: 1px solid var(--line);
+    }
+    .pg-facts { gap: var(--s-2) var(--s-3); }
+    .pg-head-cta { width: 100%; }
+  }
+
+  /* ── the photos ──────────────────────────────────────────────────────── */
+  .pg-body { padding-block: var(--s-5); }
+
+  .ph-grid { display: grid; grid-template-columns: 1fr; gap: var(--s-3); }
+  @media (min-width: 760px) {
+    .ph-grid { grid-template-columns: 1fr 1fr; }
+    .ph-tile-wide { grid-column: 1 / -1; }
+  }
+
+  .ph-tile { display: block; text-decoration: none; color: inherit; }
+  .ph-tile :global(.ph) { border-radius: var(--radius-lg); }
+  .ph-tile :global(.ph > img) { transition: transform 0.5s var(--ease); }
+  .ph-tile:hover :global(.ph > img) { transform: scale(1.02); }
+
+  .ph-cap {
+    display: block;
+    margin-top: var(--s-1);
+    font-size: var(--t-0);
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .ph-tile:hover .ph-cap { color: var(--ink); }
+  .ph-tile:focus-visible { outline-offset: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ph-tile :global(.ph > img) { transition: none; }
+    .ph-tile:hover :global(.ph > img) { transform: none; }
+  }
+
+  .pg-cta {
+    margin-top: var(--s-6);
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    gap: var(--s-3);
+  }
+  .pg-cta p { max-width: 40ch; color: var(--ink-soft); }
+</style>

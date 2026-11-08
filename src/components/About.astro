@@ -1,0 +1,54 @@
+---
+const { p, Content } = Astro.props;
+---
+
+<section id="about" aria-labelledby="about-h" class="sunk">
+  <div class="wrap about">
+    <h2 id="about-h" data-sc-in>{p.name}</h2>
+    <div class="prose" data-sc-in><Content /></div>
+  </div>
+</section>
+
+<style>
+  /* The owner's own writing. One centred measure, read like a letter -
+     the only centre-weighted section on the page. No side column, no stats. */
+  .about {
+    max-width: 62ch;
+    margin-inline: auto;
+    padding-block: var(--s-2);
+  }
+  .about h2 {
+    font-size: var(--t-2);
+    text-align: center;
+    line-height: 1.25;
+    margin-bottom: var(--s-4);
+  }
+  .about .prose {
+    max-width: none;
+    font-size: 1.03rem;
+    line-height: 1.85;
+  }
+  .about :global(.prose > p:first-child) {
+    font-size: 1.12rem;
+    line-height: 1.75;
+    color: var(--ink);
+  }
+  .about :global(.prose p + p) { margin-top: 1.35em; }
+  .about :global(.prose h3) {
+    margin-top: 2em;
+    margin-bottom: 0.4em;
+    font-size: var(--t-1);
+  }
+  .about :global(.prose ul) {
+    margin-top: 1.2em;
+    padding-inline-start: 1.2em;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 767px) {
+    .about { max-width: none; padding-block: 0; }
+    .about h2 { text-align: start; margin-bottom: var(--s-3); }
+    .about .prose { font-size: 1rem; line-height: 1.8; }
+    .about :global(.prose > p:first-child) { font-size: 1.06rem; }
+  }
+</style>

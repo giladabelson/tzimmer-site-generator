@@ -1,0 +1,463 @@
+---
+// heading: on the home page the section introduces itself. On /booking/ the page
+// header is already the title, so it is passed heading={false} and the .sec-head
+// block below is dropped. The section's accessible name switches with it: with a
+// heading it points at #bk-h, without one it carries its own aria-label, so the
+// name is never a reference to an id that is not in the DOM.
+const { p, blocked, feeds, heading = true } = Astro.props;
+
+const wa = p.contact.whatsapp.replace(/\D/g, '');
+const plainMsg = `שלום${p.contact.ownerName ? ' ' + p.contact.ownerName : ''}, הגעתי מהאתר של ${p.name} ואשמח לבדוק זמינות.`;
+const waHref = `https://wa.me/${wa}?text=${encodeURIComponent(plainMsg)}`;
+
+const cfg = {
+  name: p.name,
+  owner: p.contact.ownerName ?? '',
+  wa,
+  maxGuests: p.capacity.guests,
+  priceMin: p.price.min,
+  priceMax: p.price.max,
+  currency: p.price.currency,
+  basis: p.price.basis,
+  blocked,
+  checkIn: p.checkIn,
+  checkOut: p.checkOut,
+};
+---
+
+<section
+  id="booking"
+  aria-labelledby={heading ? 'bk-h' : undefined}
+  aria-label={heading ? undefined : 'זמינות והזמנה'}
+>
+  <div class="wrap">
+    {heading && (
+      <div class="sec-head" data-sc-in>
+        <p class="eyebrow">זמינות והזמנה</p>
+        <h2 id="bk-h">להזמין ישירות מאיתנו</h2>
+        <p>
+          בוחרים תאריכים בלוח, לוחצים, וההודעה נפתחת אצלכם בוואטסאפ כשהיא כבר כתובה.
+        </p>
+      </div>
+    )}
+
+    <div class="bk" data-booking data-config={JSON.stringify(cfg)}>
+      <div class="bk-cal">
+        <div class="cal-head">
+          <button type="button" class="rnd" data-cal-prev aria-label="לחודש הקודם">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <p class="cal-title" data-cal-title aria-live="polite"></p>
+          <button type="button" class="rnd" data-cal-next aria-label="לחודש הבא">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div class="cal-months" data-cal-months></div>
+
+        <p class="cal-legend">
+          <span><i class="sw sw-free"></i>פנוי</span>
+          <span><i class="sw sw-busy"></i>תפוס</span>
+          <span><i class="sw sw-sel"></i>הבחירה שלכם</span>
+        </p>
+
+        {feeds.failed > 0 && (
+          <p class="cal-warn" role="status">
+            שלחו הודעה לאישור זמינות סופית. חלק מהיומנים לא נקראו בזמן בניית הדף.
+          </p>
+        )}
+        {feeds.ok === 0 && feeds.failed === 0 && (
+          <p class="cal-warn" role="status">שלחו הודעה לאישור זמינות סופית.</p>
+        )}
+
+        <noscript>
+          <p class="cal-warn">לוח השנה דורש JavaScript. אפשר פשוט לשלוח הודעה עם התאריכים שלכם.</p>
+        </noscript>
+      </div>
+
+      <aside class="bk-card" data-sc-spotlight>
+        <p class="bk-price">
+          <b class="num">{p.price.currency}{p.price.min.toLocaleString('he-IL')}</b>
+          <span>-</span>
+          <b class="num">{p.price.currency}{p.price.max.toLocaleString('he-IL')}</b>
+          <small>{p.price.basis}</small>
+        </p>
+        {p.price.note && <p class="bk-note">{p.price.note}</p>}
+
+        <ul class="bk-direct">
+          <li>מחיר ישיר מהבעלים, בלי עמלת אתרי תיווך</li>
+          <li>תשובה אישית בוואטסאפ, בדרך כלל תוך דקות</li>
+          <li>בלי כרטיס אשראי מראש. סוגרים מול בן אדם</li>
+        </ul>
+
+        <dl class="bk-sel">
+          <div><dt>כניסה</dt><dd data-out-in>טרם נבחר</dd></div>
+          <div><dt>יציאה</dt><dd data-out-out>טרם נבחר</dd></div>
+          <div><dt>לילות</dt><dd class="num" data-out-nights>טרם נבחר</dd></div>
+        </dl>
+
+        <div class="bk-guests">
+          <span id="guests-label">אורחים</span>
+          <div class="stepper" role="group" aria-labelledby="guests-label">
+            <button type="button" data-g="-1" aria-label="פחות אורחים">−</button>
+            <output class="num" data-out-guests aria-live="polite">2</output>
+            <button type="button" data-g="1" aria-label="עוד אורחים">+</button>
+          </div>
+        </div>
+        <p class="bk-max">עד <span class="num">{p.capacity.guests}</span> אורחים ביחידה</p>
+
+        <p class="bk-est" data-out-est hidden></p>
+
+        <a class="btn btn-primary bk-go" href={waHref} data-wa>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7 0a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5v-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.1 1.1-1.1 2.7s1.1 3.1 1.3 3.3c.2.2 2.3 3.5 5.5 4.8 2.7 1 3.3.8 3.9.8.6-.1 1.8-.8 2.1-1.5.3-.8.3-1.4.2-1.5l-.7-.3ZM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm0 18.3c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.3 8.3 0 1 1 12 20.3Z"/></svg>
+          <span data-wa-label>בדיקת זמינות בוואטסאפ</span>
+        </a>
+
+        <div class="bk-alt">
+          {p.contact.phone && (
+            <a href={`tel:${p.contact.phone.replace(/[^\d+]/g, '')}`}>
+              חיוג ישיר <span class="ltr num">{p.contact.phone}</span>
+            </a>
+          )}
+          {p.contact.email && (
+            <button type="button" class="copy" data-copy={p.contact.email}>
+              העתקת המייל <span class="ltr">{p.contact.email}</span>
+            </button>
+          )}
+        </div>
+        <p class="bk-privacy">ההודעה נפתחת אצלכם באפליקציה. שום דבר לא נשלח מהאתר, ואין כאן שרת שאוסף פרטים.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<div class="stickybar" data-sticky hidden>
+  <div class="sticky-in">
+    <p class="sticky-txt">
+      <b data-sticky-title>בדיקת זמינות</b>
+      <small data-sticky-sub>{p.price.currency}{p.price.min.toLocaleString('he-IL')}-{p.price.currency}{p.price.max.toLocaleString('he-IL')} {p.price.basis}</small>
+    </p>
+    <a class="btn btn-primary sticky-go" href={waHref} data-wa>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7 0a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5v-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.1 1.1-1.1 2.7s1.1 3.1 1.3 3.3c.2.2 2.3 3.5 5.5 4.8 2.7 1 3.3.8 3.9.8.6-.1 1.8-.8 2.1-1.5.3-.8.3-1.4.2-1.5l-.7-.3ZM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm0 18.3c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.3 8.3 0 1 1 12 20.3Z"/></svg>
+      <span>וואטסאפ</span>
+    </a>
+  </div>
+</div>
+
+<style>
+  .bk { display: grid; gap: var(--s-4); align-items: start; }
+  @media (min-width: 940px) {
+    .bk { grid-template-columns: minmax(0, 1fr) 21rem; gap: var(--s-5); }
+  }
+
+  /* calendar */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-3); }
+  .cal-title { font-family: var(--font-heb-display); font-size: var(--t-1); }
+  .rnd {
+    width: var(--tap); height: var(--tap); border-radius: 50%;
+    border: 1px solid var(--line); background: transparent;
+    display: grid; place-items: center; cursor: pointer; flex: none;
+  }
+  .rnd:disabled { opacity: 0.3; cursor: default; }
+
+  .cal-months { display: grid; gap: var(--s-4); }
+  @media (min-width: 620px) { .cal-months { grid-template-columns: 1fr 1fr; gap: var(--s-4); } }
+
+  .cal-months :global(table) { width: 100%; border-collapse: collapse; }
+  .cal-months :global(caption) {
+    caption-side: top; text-align: start; font-weight: 600;
+    font-size: var(--t--1); color: var(--muted); padding-bottom: var(--s-1);
+  }
+  .cal-months :global(th) {
+    font-size: 0.8rem; font-weight: 600; color: var(--muted);
+    padding-bottom: 0.35rem; text-align: center;
+  }
+  .cal-months :global(td) { padding: 1px; text-align: center; }
+  .cal-months :global(td button) {
+    inline-size: 100%; aspect-ratio: 1; min-block-size: 2.15rem;
+    border: 0; background: var(--paper-card); color: var(--ink);
+    font-size: 0.875rem; font-variant-numeric: tabular-nums;
+    cursor: pointer; border-radius: 2px;
+    transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+  }
+  .cal-months :global(td button:hover:not(:disabled)) { background: var(--accent-wash); }
+  .cal-months :global(td button:disabled) {
+    background: transparent; color: color-mix(in oklab, var(--muted) 55%, transparent);
+    cursor: not-allowed; text-decoration: line-through;
+  }
+  .cal-months :global(td button[data-edge]) { background: var(--accent); color: var(--accent-contrast); font-weight: 700; }
+  .cal-months :global(td button[data-mid]) { background: color-mix(in oklab, var(--accent) 24%, var(--paper-card)); }
+
+  .cal-legend { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-3); font-size: var(--t--1); color: var(--muted); }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 0.4em; }
+  .sw { width: 0.85rem; height: 0.85rem; border-radius: 2px; display: inline-block; }
+  .sw-free { background: var(--paper-card); border: 1px solid var(--line); }
+  .sw-busy { background: transparent; border: 1px solid var(--line); position: relative; }
+  .sw-busy::after { content: ''; position: absolute; inset-block: 50%; inset-inline: 1px; border-top: 1px solid var(--muted); }
+  .sw-sel { background: var(--accent); }
+  .cal-warn { margin-top: var(--s-2); font-size: var(--t--1); color: var(--accent-deep); }
+
+  /* card */
+  .bk-card {
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    /* Warm limestone shadow, not a black one: pure black over #f2f1e4 greys the
+       page down. Tinted to the paper hue it reads as depth instead of dirt. */
+    box-shadow: 0 1px 2px rgb(60 52 34 / 0.05), 0 8px 28px rgb(60 52 34 / 0.08);
+    padding: var(--s-3);
+    position: sticky; top: var(--s-3);
+  }
+  .bk-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.35em; font-family: var(--font-heb-display); font-size: var(--t-2); }
+  .bk-price small { font-family: var(--font-heb-body); font-size: var(--t--1); font-weight: 400; color: var(--muted); flex-basis: 100%; }
+  .bk-note { margin-top: var(--s-1); font-size: 0.8rem; line-height: 1.6; color: var(--muted); }
+
+  /* No markers. The icon set has no check glyph and a text '✓' is not an icon,
+     so the three lines are separated by space alone. */
+  .bk-direct {
+    list-style: none; padding: 0;
+    margin-top: var(--s-2);
+    display: grid; gap: 0.55rem;
+    font-size: var(--t--1); line-height: 1.6; color: var(--ink-soft);
+  }
+
+  .bk-sel { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-1); margin: var(--s-3) 0; padding: var(--s-2) 0; border-block: 1px solid var(--line-soft); }
+  .bk-sel dt { font-size: 0.8rem; color: var(--muted); }
+  .bk-sel dd { margin: 0; font-size: 0.9rem; font-weight: 600; }
+
+  .bk-guests { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+  .stepper { display: flex; align-items: center; gap: 0.25rem; border: 1px solid var(--line); border-radius: 999px; padding: 0.15rem; }
+  .stepper button { width: var(--tap); height: var(--tap); border: 0; border-radius: 50%; background: transparent; cursor: pointer; font-size: 1.2rem; line-height: 1; }
+  .stepper button:hover:not(:disabled) { background: var(--accent-wash); }
+  .stepper button:disabled { opacity: 0.3; cursor: default; }
+  .stepper output { min-width: 1.5rem; text-align: center; font-weight: 600; }
+  .bk-max { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; }
+
+  .bk-est { margin-top: var(--s-2); font-size: var(--t--1); color: var(--ink-soft); }
+  .bk-go { width: 100%; margin-top: var(--s-3); }
+
+  .bk-alt { display: grid; margin-top: var(--s-2); font-size: var(--t--1); }
+  .bk-alt a, .bk-alt button {
+    display: flex; align-items: center; min-height: var(--tap);
+    background: none; border: 0; padding: 0.25rem 0; text-align: start;
+    color: var(--ink-soft); cursor: pointer; text-decoration: underline;
+    text-underline-offset: 3px; text-decoration-color: var(--line);
+  }
+  .bk-alt a:hover, .bk-alt button:hover { color: var(--ink); }
+  .bk-privacy { margin-top: var(--s-2); font-size: 0.8rem; line-height: 1.6; color: var(--muted); }
+
+  /* sticky mobile bar */
+  .stickybar {
+    position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 80;
+    background: color-mix(in oklab, var(--paper-card) 97%, transparent);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    padding: 0.6rem var(--gut) calc(0.6rem + env(safe-area-inset-bottom));
+  }
+  .stickybar[hidden] { display: none; }
+  @media (min-width: 940px) { .stickybar { display: none !important; } }
+  .sticky-in { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+  .sticky-txt { display: grid; line-height: 1.3; min-width: 0; }
+  .sticky-txt b { font-size: 0.9rem; font-weight: 600; }
+  .sticky-txt small { font-size: 0.8rem; color: var(--muted); }
+  .sticky-go { min-height: var(--tap); padding: 0.7rem 1.15rem; flex: none; }
+</style>
+
+<script>
+  const root = document.querySelector('[data-booking]');
+  const bar = document.querySelector('[data-sticky]');
+
+  if (root) {
+    const cfg = JSON.parse(root.dataset.config);
+    const blocked = new Set(cfg.blocked);
+
+    const DAY = 86400000;
+    const pad = (n) => String(n).padStart(2, '0');
+    const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const heLong = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+    const heShort = new Intl.DateTimeFormat('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    const WEEK = ['א','ב','ג','ד','ה','ו','ש'];
+    const WEEK_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    // Real words, not a dash: an empty cell has to read as "not chosen yet".
+    const EMPTY = 'טרם נבחר';
+    const nightWord = (n) => (n === 1 ? 'לילה' : 'לילות');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const last = new Date(today.getFullYear(), today.getMonth() + 18, 1);
+
+    let cursor = new Date(today.getFullYear(), today.getMonth(), 1);
+    let checkIn = null;
+    let checkOut = null;
+    let guests = Math.min(2, cfg.maxGuests);
+
+    const el = {
+      months: root.querySelector('[data-cal-months]'),
+      title: root.querySelector('[data-cal-title]'),
+      prev: root.querySelector('[data-cal-prev]'),
+      next: root.querySelector('[data-cal-next]'),
+      in: root.querySelector('[data-out-in]'),
+      out: root.querySelector('[data-out-out]'),
+      nights: root.querySelector('[data-out-nights]'),
+      guests: root.querySelector('[data-out-guests]'),
+      est: root.querySelector('[data-out-est]'),
+      waLabel: root.querySelector('[data-wa-label]'),
+    };
+    const waLinks = document.querySelectorAll('[data-wa]');
+
+    const rangeHasBlocked = (a, b) => {
+      for (let t = a.getTime(); t < b.getTime(); t += DAY) if (blocked.has(key(new Date(t)))) return true;
+      return false;
+    };
+
+    function monthTable(year, month) {
+      const first = new Date(year, month, 1);
+      const days = new Date(year, month + 1, 0).getDate();
+      const lead = first.getDay(); // 0 = Sunday, which is how an Israeli week starts
+      let cells = '';
+      for (let i = 0; i < lead; i++) cells += '<td></td>';
+      for (let d = 1; d <= days; d++) {
+        const date = new Date(year, month, d);
+        const k = key(date);
+        const past = date < today;
+        const busy = blocked.has(k);
+        const label = `${WEEK_FULL[date.getDay()]}, ${heLong.format(date)}${busy ? ', תפוס' : ''}`;
+        cells += `<td><button type="button" data-d="${k}" ${past || busy ? 'disabled' : ''} aria-label="${label}" aria-pressed="false">${d}</button></td>`;
+        if (date.getDay() === 6 && d < days) cells += '</tr><tr>';
+      }
+      return `<table><caption>${MONTHS[month]} <span class="num">${year}</span></caption>
+        <thead><tr>${WEEK.map((w, i) => `<th scope="col"><abbr title="יום ${WEEK_FULL[i]}">${w}</abbr></th>`).join('')}</tr></thead>
+        <tbody><tr>${cells}</tr></tbody></table>`;
+    }
+
+    function paintSelection() {
+      root.querySelectorAll('[data-d]').forEach((b) => {
+        b.removeAttribute('data-edge');
+        b.removeAttribute('data-mid');
+        b.setAttribute('aria-pressed', 'false');
+        const d = new Date(b.dataset.d + 'T00:00:00');
+        if (checkIn && key(d) === key(checkIn)) { b.setAttribute('data-edge', ''); b.setAttribute('aria-pressed', 'true'); }
+        if (checkOut && key(d) === key(checkOut)) { b.setAttribute('data-edge', ''); b.setAttribute('aria-pressed', 'true'); }
+        if (checkIn && checkOut && d > checkIn && d < checkOut) b.setAttribute('data-mid', '');
+      });
+    }
+
+    function message() {
+      const parts = [`שלום${cfg.owner ? ' ' + cfg.owner : ''}, הגעתי מהאתר של ${cfg.name}.`];
+      if (checkIn && checkOut) {
+        const nights = Math.round((checkOut - checkIn) / DAY);
+        parts.push(`אשמח לבדוק זמינות מ־${heShort.format(checkIn)} עד ${heShort.format(checkOut)} (${nights} ${nightWord(nights)}).`);
+      } else {
+        parts.push('אשמח לבדוק זמינות.');
+      }
+      parts.push(`מספר אורחים: ${guests}.`);
+      parts.push('תודה!');
+      return parts.join('\n');
+    }
+
+    function sync() {
+      el.in.textContent = checkIn ? heShort.format(checkIn) : EMPTY;
+      el.out.textContent = checkOut ? heShort.format(checkOut) : EMPTY;
+      el.in.dir = checkIn ? 'ltr' : 'auto';
+      el.out.dir = checkOut ? 'ltr' : 'auto';
+      const nights = checkIn && checkOut ? Math.round((checkOut - checkIn) / DAY) : 0;
+      el.nights.textContent = nights || EMPTY;
+      el.guests.textContent = guests;
+
+      if (nights) {
+        el.est.hidden = false;
+        el.est.innerHTML = `הערכת מחיר ל־<span class="num">${nights}</span> ${nightWord(nights)}: <b class="num" dir="ltr">${cfg.currency}${(nights * cfg.priceMin).toLocaleString('he-IL')}-${cfg.currency}${(nights * cfg.priceMax).toLocaleString('he-IL')}</b>. הסכום הסופי נקבע מול הבעלים.`;
+        el.waLabel.textContent = `שליחת בקשה ל־${nights} ${nightWord(nights)}`;
+      } else {
+        el.est.hidden = true;
+        el.waLabel.textContent = 'בדיקת זמינות בוואטסאפ';
+      }
+
+      const href = `https://wa.me/${cfg.wa}?text=${encodeURIComponent(message())}`;
+      waLinks.forEach((a) => { a.href = href; });
+
+      if (bar) {
+        bar.querySelector('[data-sticky-title]').textContent = nights
+          ? `${heShort.format(checkIn)} - ${heShort.format(checkOut)}`
+          : 'בדיקת זמינות';
+        bar.querySelector('[data-sticky-sub]').textContent = nights
+          ? `${nights} ${nightWord(nights)} · ${guests} אורחים`
+          : `${cfg.currency}${cfg.priceMin.toLocaleString('he-IL')}-${cfg.currency}${cfg.priceMax.toLocaleString('he-IL')} ${cfg.basis}`;
+      }
+      paintSelection();
+    }
+
+    function render() {
+      const a = new Date(cursor);
+      const b = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      const wide = window.matchMedia('(min-width: 620px)').matches;
+      el.months.innerHTML = monthTable(a.getFullYear(), a.getMonth()) + (wide ? monthTable(b.getFullYear(), b.getMonth()) : '');
+      el.title.textContent = wide
+        ? `${MONTHS[a.getMonth()]}-${MONTHS[b.getMonth()]} ${b.getFullYear()}`
+        : `${MONTHS[a.getMonth()]} ${a.getFullYear()}`;
+      el.prev.disabled = cursor <= new Date(today.getFullYear(), today.getMonth(), 1);
+      el.next.disabled = cursor >= last;
+      paintSelection();
+    }
+
+    el.prev.addEventListener('click', () => { cursor = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1); render(); });
+    el.next.addEventListener('click', () => { cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1); render(); });
+
+    el.months.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-d]');
+      if (!btn || btn.disabled) return;
+      const d = new Date(btn.dataset.d + 'T00:00:00');
+      if (!checkIn || checkOut || d <= checkIn || rangeHasBlocked(checkIn, d)) {
+        checkIn = d;
+        checkOut = null;
+      } else {
+        checkOut = d;
+      }
+      sync();
+    });
+
+    root.querySelectorAll('[data-g]').forEach((b) => {
+      b.addEventListener('click', () => {
+        guests = Math.min(cfg.maxGuests, Math.max(1, guests + Number(b.dataset.g)));
+        root.querySelector('[data-g="-1"]').disabled = guests <= 1;
+        root.querySelector('[data-g="1"]').disabled = guests >= cfg.maxGuests;
+        sync();
+      });
+    });
+
+    const copyBtn = root.querySelector('[data-copy]');
+    copyBtn?.addEventListener('click', async () => {
+      const original = copyBtn.innerHTML;
+      try {
+        await navigator.clipboard.writeText(copyBtn.dataset.copy);
+        copyBtn.textContent = 'הועתק';
+      } catch {
+        copyBtn.textContent = copyBtn.dataset.copy;
+      }
+      setTimeout(() => { copyBtn.innerHTML = original; }, 2200);
+    });
+
+    let wide = window.matchMedia('(min-width: 620px)').matches;
+    window.addEventListener('resize', () => {
+      const now = window.matchMedia('(min-width: 620px)').matches;
+      if (now !== wide) { wide = now; render(); }
+    }, { passive: true });
+
+    render();
+    sync();
+  }
+
+  // The sticky bar only appears once the hero is behind you.
+  if (bar) {
+    const hero = document.querySelector('.hero');
+    if (hero) {
+      new IntersectionObserver(
+        ([e]) => { bar.hidden = e.isIntersecting; },
+        { rootMargin: '-40% 0px 0px 0px' },
+      ).observe(hero);
+    } else {
+      bar.hidden = false;
+    }
+  }
+</script>

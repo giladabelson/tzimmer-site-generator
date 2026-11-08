@@ -1,0 +1,104 @@
+---
+import { Font } from 'astro:assets';
+import { onAccent, readableAccent, solidAccent } from '../lib/color.mjs';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import grain from '../../assets/grain.png';
+import '../styles/global.css';
+
+const { property, accent, pageTitle } = Astro.props;
+const p = property.data;
+
+const hasPlaceholders = [...p.images, ...p.panoramas, ...(p.entrance ? [p.entrance] : [])]
+  .some((i) => i.source !== 'real');
+
+const description = p.seo?.description || p.shortDescription;
+const title = pageTitle ? `${pageTitle}, ${p.name}` : `${p.name}, ${p.region}`;
+
+// Two derived values, so any accent a property picks still passes WCAG AA:
+// one for solid fills (button + its label), one for accent-coloured text.
+const solid = solidAccent(accent);
+
+// Inline SVG favicon in the property's own accent. No file, no request.
+const favicon =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="${solid}"/><path d="M8 21V13l8-5 8 5v8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>`,
+  );
+const vars = [
+  `--accent:${solid}`,
+  `--accent-contrast:${onAccent(solid)}`,
+  `--accent-deep:${readableAccent(solid, '#efeade')}`,
+  `--grain-url:url(${grain.src})`,
+].join(';');
+
+// schema.org, so a Google result for the property name shows the real thing.
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'LodgingBusiness',
+  name: p.name,
+  description,
+  address: { '@type': 'PostalAddress', addressLocality: p.location.address, addressCountry: 'IL' },
+  geo: { '@type': 'GeoCoordinates', latitude: p.location.lat, longitude: p.location.lng },
+  telephone: p.contact.phone ?? p.contact.whatsapp,
+  checkinTime: p.checkIn,
+  checkoutTime: p.checkOut,
+  numberOfRooms: p.capacity.bedrooms,
+  petsAllowed: p.amenities.some((a) => a.icon === 'pets'),
+  priceRange: `${p.price.currency}${p.price.min}-${p.price.currency}${p.price.max}`,
+};
+---
+
+<!doctype html>
+<html lang="he" dir="rtl" style={vars}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content={solid} />
+    <link rel="icon" href={favicon} />
+    <link rel="canonical" href={Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.pathname} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="he_IL" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta name="robots" content="index,follow" />
+    <Font cssVariable="--font-display" />
+    <Font cssVariable="--font-body" />
+    <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+  </head>
+  <body>
+    <script is:inline>
+      // Arm the scroll-story devices only when JS is alive. A watchdog clears
+      // the flag if the engine has not mounted, so a failed chunk can never
+      // leave the page blank. See "scrollcraft guard" in global.css.
+      (function () {
+        var el = document.documentElement;
+        el.classList.add('sc-on');
+        setTimeout(function () {
+          if (window.ScrollCraft) return;
+          // Do not try to out-specify the engine's own rules — remove the
+          // attributes they key off. Nothing can then keep the page hidden.
+          el.classList.remove('sc-on');
+          var a = ['data-sc-in', 'data-sc-cue', 'data-sc-stagger', 'data-sc-reveal'];
+          for (var i = 0; i < a.length; i++) {
+            var n = document.querySelectorAll('[' + a[i] + ']');
+            for (var j = 0; j < n.length; j++) {
+              n[j].removeAttribute(a[i]);
+              // A half-mounted engine can leave inline opacity behind too.
+              n[j].style.removeProperty('opacity');
+              n[j].style.removeProperty('transform');
+              n[j].style.removeProperty('clip-path');
+            }
+          }
+        }, 3000);
+      })();
+    </script>
+    <a class="skip" href="#main">דילוג לתוכן הראשי</a>
+    <Nav p={p} />
+    <main id="main"><slot /></main>
+    <Footer p={p} hasPlaceholders={hasPlaceholders} />
+    <script>import '../scripts/motion.js';</script>
+  </body>
+</html>

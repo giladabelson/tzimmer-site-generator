@@ -1,0 +1,83 @@
+---
+const { p } = Astro.props;
+const { lat, lng, address, nearby } = p.location;
+const q = `${lat},${lng}`;
+
+// Plain links. Nothing is fetched from these hosts unless the guest taps.
+const maps = [
+  { label: 'Waze', href: `https://waze.com/ul?ll=${q}&navigate=yes` },
+  { label: 'Google Maps', href: `https://www.google.com/maps/search/?api=1&query=${q}` },
+  { label: 'Apple Maps', href: `https://maps.apple.com/?ll=${q}&q=${encodeURIComponent(p.name)}` },
+];
+---
+
+<section id="location" aria-labelledby="loc-h" class="sunk">
+  <div class="wrap loc">
+    <div class="loc-where" data-sc-in>
+      <p class="eyebrow">איפה זה</p>
+      <h2 id="loc-h">{address}</h2>
+      <p class="loc-coords">
+        <span class="ltr num">{lat.toFixed(4)}, {lng.toFixed(4)}</span>
+      </p>
+      <div class="loc-links">
+        {maps.map((m) => (
+          <a class="btn btn-ghost" href={m.href} target="_blank" rel="noopener noreferrer">
+            {m.label}
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M7 17 17 7M17 7H9m8 0v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="sr-only">נפתח בחלון חדש</span>
+          </a>
+        ))}
+      </div>
+      <p class="loc-note">הכתובת המדויקת והוראות הגעה נשלחות בוואטסאפ אחרי אישור ההזמנה.</p>
+    </div>
+
+    {nearby.length > 0 && (
+      <div class="loc-near" data-sc-in>
+        <h3 class="near-h">מה יש מסביב</h3>
+        <ul class="near">
+          {nearby.map((n) => (
+            <li>
+              <span>{n.name}</span>
+              <span class="dots" aria-hidden="true"></span>
+              <span class="near-min"><span class="num">{n.minutes}</span> דק׳ נסיעה</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  /* The one section that legitimately needs side by side:
+     address and actions on one side, what is nearby on the other. */
+  .loc { display: grid; gap: var(--s-5); }
+  @media (min-width: 880px) {
+    .loc { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: var(--s-5); align-items: start; }
+    .loc-near {
+      border-inline-start: 1px solid var(--line-soft);
+      padding-inline-start: var(--s-5);
+    }
+  }
+  @media (max-width: 767px) {
+    .loc { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+    .loc-near { border-inline-start: 0; padding-inline-start: 0; }
+  }
+
+  .loc h2 { font-size: var(--t-2); }
+  .loc-coords { margin-top: var(--s-1); font-size: var(--t--1); color: var(--muted); }
+  .loc-links { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-3); }
+  .loc-links .btn { padding: 0.7rem 1.15rem; font-size: var(--t--1); }
+  .loc-note { margin-top: var(--s-3); font-size: var(--t--1); color: var(--muted); max-width: 40ch; }
+
+  /* Leader dots carry the row. No rule underneath - leaders or rules, not both. */
+  .near-h { margin-bottom: var(--s-2); }
+  .near { list-style: none; padding: 0; }
+  .near li {
+    display: flex; align-items: baseline; gap: 0.6rem;
+    padding: 0.55rem 0;
+    font-size: var(--t--1);
+  }
+  .dots { flex: 1; border-bottom: 1px dotted var(--line); transform: translateY(-0.25em); }
+  .near-min { color: var(--muted); white-space: nowrap; }
+</style>

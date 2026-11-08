@@ -1,0 +1,62 @@
+---
+const { p } = Astro.props;
+---
+
+<section id="rules" aria-labelledby="rules-h">
+  <div class="wrap rules">
+    <div class="rules-head" data-sc-in>
+      <h2 id="rules-h">כללי הבית</h2>
+      <p class="rules-times">
+        <span>כניסה מ־<b class="ltr num">{p.checkIn}</b></span>
+        <span>יציאה עד <b class="ltr num">{p.checkOut}</b></span>
+      </p>
+    </div>
+    <ul data-sc-in data-sc-stagger="45">
+      {p.houseRules.map((r) => (
+        <li>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>{r}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  /* Full width. Scannable text in columns, held apart by space alone -
+     no rule between rows. */
+  .rules { display: block; }
+  .rules-head { margin-bottom: var(--s-4); }
+  .rules h2 { font-size: var(--t-2); }
+
+  .rules-times {
+    margin-top: var(--s-2);
+    display: flex; flex-wrap: wrap;
+    column-gap: var(--s-4); row-gap: 0.3rem;
+    font-size: var(--t--1); color: var(--muted);
+  }
+  .rules-times b { font-weight: 600; color: var(--ink); margin-inline-start: 0.35em; }
+
+  .rules ul {
+    list-style: none; padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--s-5);
+    row-gap: var(--s-3);
+    align-items: start;
+  }
+  .rules li {
+    display: flex; gap: 0.7rem;
+    font-size: var(--t--1); line-height: 1.7;
+    max-width: 34ch;
+  }
+  .rules svg { flex: none; margin-top: 0.35em; color: var(--accent-deep); }
+
+  @media (max-width: 1000px) {
+    .rules ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s-4); }
+  }
+  @media (max-width: 767px) {
+    .rules ul { grid-template-columns: minmax(0, 1fr); row-gap: var(--s-2); column-gap: 0; }
+    .rules li { max-width: none; }
+  }
+</style>

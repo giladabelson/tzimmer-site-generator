@@ -1,0 +1,126 @@
+---
+// Floating top bar, on every page. Transparent over the hero, turns to glass
+// once the reader scrolls; subpages (no dark hero) start glassy.
+const { p } = Astro.props;
+const isHome = Astro.url.pathname === '/' || Astro.url.pathname === '';
+const pre = isHome ? '' : '/';
+const wa = p.contact.whatsapp.replace(/\D/g, '');
+const waHref = `https://wa.me/${wa}?text=${encodeURIComponent(`שלום${p.contact.ownerName ? ' ' + p.contact.ownerName : ''}, הגעתי מהאתר של ${p.name} ואשמח לבדוק זמינות.`)}`;
+---
+
+<nav class="topnav" data-topnav data-home={isHome ? '' : undefined} data-glass={isHome ? undefined : ''} aria-label="ניווט ראשי">
+  <div class="nav-in">
+    <a class="nav-name" href="/">{p.name}</a>
+
+    <div class="nav-links">
+      <a href={`${pre}#tour`}>הסיור</a>
+      <a href="/gallery/">הגלריה</a>
+      <a href={`${pre}#booking`}>בדיקת זמינות</a>
+    </div>
+
+    <a class="nav-wa" href={waHref}>
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7 0a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5v-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.1 1.1-1.1 2.7s1.1 3.1 1.3 3.3c.2.2 2.3 3.5 5.5 4.8 2.7 1 3.3.8 3.9.8.6-.1 1.8-.8 2.1-1.5.3-.8.3-1.4.2-1.5l-.7-.3ZM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm0 18.3c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.3 8.3 0 1 1 12 20.3Z"/></svg>
+      <span>וואטסאפ</span>
+    </a>
+  </div>
+</nav>
+
+<style>
+  .topnav {
+    position: fixed;
+    inset-inline: 0;
+    top: 0;
+    z-index: 100;
+    color: #fff;
+    transition: background-color 0.35s var(--ease), color 0.35s var(--ease), border-color 0.35s var(--ease);
+    border-bottom: 1px solid transparent;
+  }
+  .topnav[data-glass] {
+    color: var(--ink);
+    background: color-mix(in oklab, var(--paper) 86%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom-color: var(--line-soft);
+  }
+
+  .nav-in {
+    width: min(100% - (var(--gut) * 2), 1140px);
+    margin-inline: auto;
+    height: var(--nav-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
+
+  .nav-name {
+    font-family: var(--font-heb-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-decoration: none;
+    min-height: var(--tap);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* The booking link reads "בדיקת זמינות", word for word the same as the hero
+     button, so the primary journey carries one name everywhere. The pill keeps
+     its own name, "וואטסאפ", because it is the shortcut that skips the calendar.
+
+     One-line check at 1024px, where the links are widest relative to the bar:
+     --gut resolves to 3rem, so .nav-in is 928px inside the 1140px cap. At
+     --t--1 (13.8px, weight 600) the three links measure roughly 36 + 43 + 82px
+     with two 2.25rem gaps, about 233px; the property name about 97px and the
+     pill about 107px. That is roughly 481px of 928px even before the flex
+     gaps - about half the bar - so --s-4 stays as it was and nothing shortens.
+     It still fits at the 720px breakpoint where the links first appear (648px
+     container). nowrap below is belt and braces: it guarantees the two-word
+     label can never break across the 56px bar even on a long property name. */
+  .nav-links { display: none; }
+  @media (min-width: 720px) {
+    .nav-links { display: flex; gap: var(--s-4); }
+    .nav-links a {
+      font-size: var(--t--1);
+      font-weight: 600;
+      white-space: nowrap;
+      text-decoration: none;
+      min-height: var(--tap);
+      display: inline-flex;
+      align-items: center;
+      opacity: 0.85;
+      transition: opacity 0.2s var(--ease);
+    }
+    .nav-links a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 5px; text-decoration-color: currentColor; }
+  }
+
+  .nav-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    min-height: 2.6rem;
+    padding: 0.35rem 1.05rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: var(--t--1);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.25s var(--ease);
+  }
+  .nav-wa:hover { background: var(--accent-deep); }
+</style>
+
+<script>
+  const nav = document.querySelector('[data-topnav]');
+  if (nav && nav.hasAttribute('data-home')) {
+    let ticking = false;
+    const sync = () => {
+      nav.toggleAttribute('data-glass', scrollY > 40);
+      ticking = false;
+    };
+    addEventListener('scroll', () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(sync); }
+    }, { passive: true });
+    sync();
+  }
+</script>
